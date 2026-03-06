@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        Base application theme.
+        Inherits Material3 DayNight for automatic dark mode support.
+        Color customization deferred to M5 (theme / syntax color tokens).
+    -->
+    <style name="Theme.NbViewer" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Toolbar color overrides added in M5 -->
+    </style>
+</resources>

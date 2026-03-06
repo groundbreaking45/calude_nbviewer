@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+        PERMISSIONS RATIONALE:
+        - No INTERNET permission: app is fully offline by design.
+        - No READ_EXTERNAL_STORAGE: SAF (Storage Access Framework) grants
+          URI-based access without broad storage permission on API 26+.
+          On API 32 and below, READ_EXTERNAL_STORAGE is declared but scoped
+          to maxSdkVersion="32" as a fallback for direct path access only.
+    -->
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+
+    <application
+        android:name=".App"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.NbViewer">
+
+        <!--
+            Single Activity host. Navigation Component manages all fragments.
+        -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize">
+
+            <!-- Standard launcher entry point -->
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!--
+                "Open with" intent-filter.
+                When the user taps a .ipynb file in Files, Gmail attachment,
+                or any file manager, NbViewer appears in the chooser.
+
+                MIME TYPE NOTE: .ipynb has no IANA-registered MIME type.
+                We cover the most common assignments by file managers:
+                  - application/octet-stream (generic binary — most common)
+                  - text/plain (some managers assign for JSON-like files)
+                  - application/json (occasionally assigned)
+                  - */* as final fallback; extension filter is advisory only.
+                The parser validates content regardless of MIME type.
+            -->
+            <intent-filter android:label="@string/open_with_label">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:mimeType="application/octet-stream" />
+            </intent-filter>
+
+            <intent-filter android:label="@string/open_with_label">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+
+            <intent-filter android:label="@string/open_with_label">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/json" />
+            </intent-filter>
+
+        </activity>
+
+    </application>
+
+</manifest>

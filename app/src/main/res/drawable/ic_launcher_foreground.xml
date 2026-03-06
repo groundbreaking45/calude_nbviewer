@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Notebook page shape -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M30,20 L78,20 Q82,20 82,24 L82,84 Q82,88 78,88 L30,88 Q26,88 26,84 L26,24 Q26,20 30,20 Z" />
+
+    <!-- Code lines — three horizontal bars suggesting code -->
+    <path
+        android:fillColor="#4A90D9"
+        android:pathData="M34,38 L64,38 Q66,38 66,40 L66,42 Q66,44 64,44 L34,44 Q32,44 32,42 L32,40 Q32,38 34,38 Z" />
+    <path
+        android:fillColor="#4A90D9"
+        android:pathData="M34,50 L74,50 Q76,50 76,52 L76,54 Q76,56 74,56 L34,56 Q32,56 32,54 L32,52 Q32,50 34,50 Z" />
+    <path
+        android:fillColor="#4A90D9"
+        android:pathData="M34,62 L58,62 Q60,62 60,64 L60,66 Q60,68 58,68 L34,68 Q32,68 32,66 L32,64 Q32,62 34,62 Z" />
+
+    <!-- Left binding dots -->
+    <path
+        android:fillColor="#F0A500"
+        android:pathData="M22,30 A4,4 0 1,1 22.001,30 Z" />
+    <path
+        android:fillColor="#F0A500"
+        android:pathData="M22,54 A4,4 0 1,1 22.001,54 Z" />
+    <path
+        android:fillColor="#F0A500"
+        android:pathData="M22,78 A4,4 0 1,1 22.001,78 Z" />
+
+</vector>

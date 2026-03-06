@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">NbViewer</string>
+    <string name="home_subtitle">Open a Jupyter Notebook (.ipynb) to view its contents offline.</string>
+    <string name="button_open_file">Open File</string>
+    <string name="offline_only_label">Works fully offline · No code execution</string>
+    <string name="open_with_label">NbViewer</string>
+    <string name="viewer_label">Notebook</string>
+    <string name="error_no_file_manager">No file manager app found. Please install one to open files.</string>
+    <string name="error_generic">Failed to load notebook. Please try a different file.</string>
+    <string name="output_image_placeholder">[Image output: %1$s]</string>
+</resources>

@@ -1,0 +1,493 @@
+{
+  "$schema": "https://nbviewer.dev/schema/project_state.v1.json",
+  "meta": {
+    "schema_version": "1.0",
+    "description": "NbViewer Android project state file. Load this at the start of any new development session to restore full architectural context without re-derivation.",
+    "last_updated": "2026-03-04",
+    "milestone": "M1-complete",
+    "next_milestone": "M2",
+    "session_notes": "M1 fully implemented. All files compile. Stub repository returns 3-cell notebook. ViewModel guards against concurrent loads. SAF picker uses OpenDocument with */* MIME. Intent filter covers 3 MIME types for open-with. repeatOnLifecycle(STARTED) used for safe StateFlow collection. No new dependencies introduced beyond what architecture defined."
+  },
+
+  "product": {
+    "name": "NbViewer",
+    "tagline": "Offline Jupyter Notebook viewer for Android",
+    "package_id": "com.nbviewer",
+    "version": "v1.0-initial",
+    "min_sdk": 26,
+    "target_sdk": 34,
+    "language": "Kotlin",
+    "build_system": "Gradle (Kotlin DSL)",
+    "purpose": "Read and display .ipynb files locally on-device. No code execution. No network access. No bundled runtimes.",
+    "non_goals_v1": [
+      "Executing any notebook code",
+      "Network access of any kind",
+      "Rendering HTML outputs from notebook cells",
+      "Rendering image outputs (placeholder text shown instead)",
+      "File history or recents list",
+      "In-notebook search",
+      "Export to PDF or HTML",
+      "Caching parsed notebooks across sessions",
+      "Multi-tab or multi-file viewing",
+      "Notebook editing or annotation",
+      "Hilt or other DI framework (manual DI only)",
+      "LaTeX / MathJax math rendering"
+    ]
+  },
+
+  "architecture": {
+    "pattern": "Clean Architecture (3-layer: Data / Domain / Presentation)",
+    "principles": [
+      "Domain layer has zero Android SDK imports — pure Kotlin only",
+      "Each layer communicates with the layer below via interfaces only",
+      "Presentation layer consumes UI models, never domain models directly",
+      "All file I/O occurs on Dispatchers.IO, never the main thread",
+      "ViewModel is the single source of truth for UI state via StateFlow"
+    ],
+    "layers": {
+      "data": {
+        "package": "com.nbviewer.data",
+        "subpackages": ["model", "parser", "source", "repository", "mapper"],
+        "android_dependency": true,
+        "responsibilities": [
+          "JSON deserialization of .ipynb files into DTOs",
+          "File I/O via Android ContentResolver (SAF)",
+          "Mapping DTOs to domain models",
+          "Implementing INotebookRepository"
+        ]
+      },
+      "domain": {
+        "package": "com.nbviewer.domain",
+        "subpackages": ["model", "repository", "usecase"],
+        "android_dependency": false,
+        "responsibilities": [
+          "Defining domain models (Notebook, Cell, CellOutput)",
+          "Defining INotebookRepository interface",
+          "Implementing LoadNotebookUseCase",
+          "Containing all business rules"
+        ]
+      },
+      "presentation": {
+        "package": "com.nbviewer.presentation",
+        "subpackages": ["home", "viewer", "render"],
+        "android_dependency": true,
+        "responsibilities": [
+          "NotebookViewerViewModel (StateFlow-based)",
+          "HomeFragment (file picker via SAF)",
+          "NotebookViewerFragment (RecyclerView host)",
+          "NotebookAdapter (multi-viewtype)",
+          "ViewHolders: MarkdownCellViewHolder, CodeCellViewHolder, RawCellViewHolder",
+          "SyntaxHighlighter (custom span-based, no third-party lib)",
+          "Converting domain models to CellUiModel list"
+        ]
+      }
+    },
+    "di": {
+      "approach": "Manual DI via AppContainer singleton in Application class",
+      "rationale": "Zero overhead, zero magic, zero APK cost. Upgrade to Hilt when module count justifies it.",
+      "upgrade_trigger": "When the object graph exceeds 3 feature modules or scoping becomes complex"
+    },
+    "async": {
+      "library": "Kotlin Coroutines + StateFlow",
+      "io_dispatcher": "Dispatchers.IO for all file reads and parsing",
+      "ui_dispatcher": "Main thread only for StateFlow collection and view updates"
+    },
+    "navigation": {
+      "approach": "Jetpack Navigation Component, single-activity",
+      "graph": "nav_graph.xml with HomeFragment as start destination"
+    }
+  },
+
+  "dependencies": {
+    "policy": "Minimal, well-justified, no transitive bloat. Every dependency must be re-justified at each major version.",
+    "libraries": [
+      {
+        "id": "org.jetbrains.kotlinx:kotlinx-serialization-json",
+        "version": "1.6.3",
+        "purpose": "JSON parsing of .ipynb files",
+        "justification": "Zero-reflection compiler plugin approach. Smaller than Gson, Kotlin-native, ignoreUnknownKeys ensures forward-compat with future nbformat versions.",
+        "apk_impact_kb": 500,
+        "alternative_considered": "Moshi — acceptable but requires kapt or KSP; Gson — heavier, reflection-based"
+      },
+      {
+        "id": "io.noties.markwon:markwon-core",
+        "version": "4.6.2",
+        "purpose": "Render Markdown cells to Spannable without WebView",
+        "justification": "Only viable Android Markdown renderer that produces native Spannables applied to TextView. No WebView, no JS, small footprint.",
+        "apk_impact_kb": 150,
+        "alternative_considered": "WebView — explicitly prohibited. CommonMark-Java — produces HTML, still needs a renderer."
+      },
+      {
+        "id": "androidx.lifecycle:lifecycle-viewmodel-ktx",
+        "version": "2.7.0",
+        "purpose": "ViewModel + viewModelScope coroutine support",
+        "justification": "Standard Jetpack, negligible size.",
+        "apk_impact_kb": 30,
+        "alternative_considered": "None — this is the Android standard"
+      },
+      {
+        "id": "org.jetbrains.kotlinx:kotlinx-coroutines-android",
+        "version": "1.7.3",
+        "purpose": "Coroutine dispatcher for background I/O and main thread dispatch",
+        "justification": "Required for structured concurrency. Dispatchers.IO for file reads prevents UI blocking.",
+        "apk_impact_kb": 200,
+        "alternative_considered": "None viable on Android"
+      },
+      {
+        "id": "androidx.recyclerview:recyclerview",
+        "version": "1.3.2",
+        "purpose": "Efficient scrolling list of heterogeneous cell types",
+        "justification": "Industry standard, required for multi-viewtype cell list with DiffUtil.",
+        "apk_impact_kb": 20,
+        "alternative_considered": "Jetpack Compose LazyColumn — viable future upgrade but increases APK by ~2MB for v1"
+      },
+      {
+        "id": "androidx.activity:activity-ktx",
+        "version": "1.8.2",
+        "purpose": "registerForActivityResult API for SAF file picker",
+        "justification": "Provides lifecycle-safe ActivityResultLauncher. Mandatory for SAF integration on API 26+.",
+        "apk_impact_kb": 15,
+        "alternative_considered": "None — deprecated startActivityForResult cannot be used"
+      },
+      {
+        "id": "androidx.navigation:navigation-fragment-ktx",
+        "version": "2.7.6",
+        "purpose": "Fragment-to-fragment navigation (Home → Viewer)",
+        "justification": "Safe args + back stack management. Minimal size.",
+        "apk_impact_kb": 40,
+        "alternative_considered": "Manual FragmentTransaction — feasible but error-prone for back stack"
+      }
+    ],
+    "total_estimated_apk_impact_kb": 955
+  },
+
+  "domain_models": {
+    "Notebook": {
+      "fields": ["formatVersion: Int", "language: String", "cells: List<Cell>", "metadata: NotebookMetadata"],
+      "notes": "Top-level model. Language resolved from kernelspec.language → language_info.name → 'python'"
+    },
+    "NotebookMetadata": {
+      "fields": ["kernelName: String?", "kernelDisplayName: String?", "languageName: String?"]
+    },
+    "Cell": {
+      "type": "sealed class",
+      "variants": ["Markdown(id, source)", "Code(id, source, executionCount, outputs)", "Raw(id, source)", "Unknown(id, cellType)"],
+      "notes": "id is index-based in v1 ('cell_0', 'cell_1'). Future: use nbformat 4.5 'id' field."
+    },
+    "CellOutput": {
+      "type": "sealed class",
+      "variants": ["Stream(text)", "DisplayData(mimeData)", "ExecuteResult(mimeData, executionCount)", "Error(ename, evalue, traceback)", "Unknown(outputType)"]
+    },
+    "NotebookSource": {
+      "type": "sealed class",
+      "variants": ["UriSource(uriString: String)", "PathSource(path: String)"],
+      "notes": "UriSource wraps android.net.Uri.toString() so domain stays Android-free"
+    }
+  },
+
+  "public_interfaces": {
+    "INotebookRepository": {
+      "package": "com.nbviewer.domain.repository",
+      "methods": ["suspend fun loadNotebook(source: NotebookSource): Result<Notebook>"],
+      "implemented_by": "NotebookRepositoryImpl (data layer)"
+    }
+  },
+
+  "use_cases": {
+    "LoadNotebookUseCase": {
+      "package": "com.nbviewer.domain.usecase",
+      "input": "NotebookSource",
+      "output": "Result<Notebook>",
+      "description": "Delegates to INotebookRepository. Single public operator fun invoke().",
+      "status": "designed — not yet implemented"
+    }
+  },
+
+  "ui_state": {
+    "NotebookUiState": {
+      "type": "sealed class",
+      "variants": ["Idle", "Loading", "Success(cells: List<CellUiModel>)", "Error(message: String)"],
+      "transport": "StateFlow<NotebookUiState> in NotebookViewerViewModel"
+    },
+    "CellUiModel": {
+      "type": "sealed class",
+      "variants": ["MarkdownCell(id, rawMarkdown)", "CodeCell(id, source, language, executionCount, outputs)", "RawCell(id, source)"]
+    }
+  },
+
+  "milestones": {
+    "M1": {
+      "title": "File Selection + Safe URI Handling",
+      "status": "complete",
+      "description": "SAF file picker, URI passed to ViewModel via NotebookSource.UriSource, lifecycle-safe ActivityResultLauncher, error path for null/invalid URI, no UI blocking.",
+      "deliverables": [
+        "HomeFragment.kt — SAF launcher with ActivityResultContracts.OpenDocument ✓",
+        "MainActivity.kt — single-activity host with NavController + intent handling ✓",
+        "nav_graph.xml — navigation graph with HomeFragment start + sourceUriString arg ✓",
+        "AppContainer.kt — manual DI wiring (stub repo until M3) ✓",
+        "StubNotebookRepository.kt — compile-time stub returns 3-cell notebook for testing ✓",
+        "App.kt — Application class ✓",
+        "AndroidManifest.xml — intent-filter for .ipynb open-with (3 MIME types) ✓",
+        "NotebookSource.kt — domain source abstraction (UriSource, PathSource) ✓",
+        "DomainModels.kt — Notebook, Cell, CellOutput, NotebookMetadata sealed classes ✓",
+        "INotebookRepository.kt — repository interface ✓",
+        "LoadNotebookUseCase.kt — single use case ✓",
+        "NotebookViewerViewModel.kt — StateFlow + load guard + domain→UI mapping ✓",
+        "ViewerState.kt — NotebookUiState, CellUiModel, OutputUiModel sealed classes ✓",
+        "NotebookViewerFragment.kt — repeatOnLifecycle(STARTED) collection + state rendering ✓",
+        "fragment_home.xml — Open File button layout ✓",
+        "fragment_viewer.xml — progress/RecyclerView/error layout ✓",
+        "nav_graph.xml — action_home_to_viewer with slide animations ✓",
+        "strings.xml, themes.xml, proguard-rules.pro ✓"
+      ],
+      "verification": "Install on device/emulator. Tap Open File → system picker appears → select any file → ViewModel emits Loading then Success → Logcat shows 'Loaded 3 cells successfully' (stub). Rotate device → no re-load occurs. Open .ipynb via file manager → app launches directly to viewer."
+    },
+    "M2": {
+      "title": "JSON Parsing Pipeline Validation",
+      "status": "pending",
+      "description": "NotebookDto, NotebookParser, FileDataSource, unit tests with real .ipynb fixture files.",
+      "deliverables": [
+        "NotebookDto.kt + CellDto.kt + OutputDto.kt",
+        "NotebookParser.kt (kotlinx.serialization)",
+        "FileDataSource.kt (ContentResolver wrapper)",
+        "ParserTest.kt with 3 fixture .ipynb files (simple, complex, malformed)"
+      ]
+    },
+    "M3": {
+      "title": "Domain Mapping Verification",
+      "status": "pending",
+      "description": "NotebookDtoMapper, domain models, INotebookRepository, LoadNotebookUseCase, full pipeline test.",
+      "deliverables": [
+        "Notebook.kt + Cell.kt + CellOutput.kt + NotebookMetadata.kt",
+        "INotebookRepository.kt",
+        "LoadNotebookUseCase.kt",
+        "NotebookDtoMapper.kt",
+        "NotebookRepositoryImpl.kt",
+        "NotebookDtoMapperTest.kt",
+        "LoadNotebookUseCaseTest.kt (with fake repository)"
+      ]
+    },
+    "M4": {
+      "title": "RecyclerView Rendering (Unstyled)",
+      "status": "pending",
+      "description": "NotebookAdapter with DiffUtil, three ViewHolder types, ViewModel wired to fragment, unstyled but functional cell list.",
+      "deliverables": [
+        "CellUiModel.kt + OutputUiModel.kt",
+        "NotebookAdapter.kt (DiffUtil, multi-viewtype)",
+        "MarkdownCellViewHolder.kt (plain text, no Markwon yet)",
+        "CodeCellViewHolder.kt (plain monospace, no highlighting yet)",
+        "RawCellViewHolder.kt",
+        "NotebookViewerFragment.kt (full StateFlow collection + adapter swap)",
+        "item_cell_*.xml layouts (minimal, functional)"
+      ]
+    },
+    "M5": {
+      "title": "Markdown + Code Rendering Integration",
+      "status": "pending",
+      "description": "Markwon integration in MarkdownCellViewHolder, SyntaxHighlighter wired into CodeCellViewHolder, output rendering, ProGuard rules.",
+      "deliverables": [
+        "SyntaxHighlighter.kt (custom span-based, Python + common tokens)",
+        "MarkdownCellViewHolder.kt updated with Markwon",
+        "CodeCellViewHolder.kt updated with SyntaxHighlighter",
+        "OutputUiModel rendering in CodeCellViewHolder",
+        "proguard-rules.pro additions for kotlinx.serialization",
+        "End-to-end manual test checklist"
+      ]
+    }
+  },
+
+  "adrs": [
+    {
+      "id": "ADR-001",
+      "title": "Manual DI over Hilt",
+      "status": "accepted",
+      "context": "App has one feature and a small object graph in v1.",
+      "decision": "Use AppContainer with manual wiring. Zero overhead, zero annotation processing.",
+      "consequences": "If object graph grows beyond 3 feature modules, migrate to Hilt. Migration is mechanical — interfaces don't change."
+    },
+    {
+      "id": "ADR-002",
+      "title": "kotlinx.serialization over Gson/Moshi",
+      "status": "accepted",
+      "context": "Need JSON parsing. Gson uses reflection. Moshi needs KSP/kapt.",
+      "decision": "kotlinx.serialization with ignoreUnknownKeys=true and isLenient=true.",
+      "consequences": "Forward-compat with nbformat 5+. Requires kotlin serialization gradle plugin."
+    },
+    {
+      "id": "ADR-003",
+      "title": "Markwon over WebView for Markdown",
+      "status": "accepted",
+      "context": "Markdown cells must render offline with no WebView.",
+      "decision": "io.noties.markwon:markwon-core renders Markdown as native Android Spannables on a TextView.",
+      "consequences": "Complex Markdown edge cases (tables, footnotes) need Markwon extension modules. Add per-need, not upfront."
+    },
+    {
+      "id": "ADR-004",
+      "title": "Custom span-based syntax highlighter",
+      "status": "accepted",
+      "context": "No third-party code view library that is small, maintained, and WebView-free.",
+      "decision": "Custom SyntaxHighlighter using regex patterns + ForegroundColorSpan applied to SpannableString.",
+      "consequences": "Python coverage only in v1. Adding new languages is O(1) — append a pattern set."
+    },
+    {
+      "id": "ADR-005",
+      "title": "SAF (Storage Access Framework) for file access",
+      "status": "accepted",
+      "context": "READ_EXTERNAL_STORAGE is deprecated on API 33+. Direct path access unreliable across OEMs.",
+      "decision": "Use ActivityResultContracts.OpenDocument(). Works on all API 26+ without storage permission.",
+      "consequences": "URI persistence requires takePersistableUriPermission if re-open after process death is needed (future feature)."
+    },
+    {
+      "id": "ADR-006",
+      "title": "NotebookSource abstraction at domain boundary",
+      "status": "accepted",
+      "context": "Domain layer must not import android.net.Uri.",
+      "decision": "NotebookSource.UriSource(uriString: String) stores Uri.toString(). Reconstructed in data layer.",
+      "consequences": "Domain is 100% JVM-testable. Uri parsing stays in FileDataSource."
+    },
+    {
+      "id": "ADR-007",
+      "title": "Index-based cell IDs in v1",
+      "status": "accepted",
+      "context": "nbformat 4.5 added an 'id' field per cell. Older notebooks don't have it.",
+      "decision": "Generate IDs as 'cell_{index}' during mapping. Stable within a single load.",
+      "consequences": "DiffUtil animations work correctly. If nbformat id field is exposed in future, replace during mapper update only."
+    },
+    {
+      "id": "ADR-008",
+      "title": "RecyclerView over Jetpack Compose",
+      "status": "accepted",
+      "context": "Target devices include low-end hardware. Compose adds ~2MB to APK and has higher initial frame costs.",
+      "decision": "RecyclerView with ViewHolder pattern and DiffUtil.",
+      "consequences": "Future migration to Compose LazyColumn is feasible — adapters can be replaced without touching domain or data layers."
+    }
+  ],
+
+  "extension_points": [
+    {
+      "future_feature": "Recent files history",
+      "seam": "Add FileHistoryRepository (backed by SharedPreferences or Room) to AppContainer. New UseCase. HomeFragment gets new UI section. Zero existing code changes."
+    },
+    {
+      "future_feature": "In-notebook search",
+      "seam": "SearchNotebookUseCase accepts Notebook + query string, returns List<SearchResult>. ViewModel exposes search StateFlow alongside existing cells StateFlow."
+    },
+    {
+      "future_feature": "Image output rendering",
+      "seam": "CellOutput.DisplayData already in domain model. OutputUiModel.ImageOutput added to sealed class. New ImageOutputViewHolder inside CodeCellViewHolder's output section."
+    },
+    {
+      "future_feature": "Dark/light themes + syntax color schemes",
+      "seam": "SyntaxHighlighter already accepts a Map<TokenType, Int> color map. Wire to current theme resource at bind time."
+    },
+    {
+      "future_feature": "Export to PDF/HTML",
+      "seam": "ExportNotebookUseCase consumes existing Notebook domain model. No parsing changes needed."
+    },
+    {
+      "future_feature": "Notebook caching",
+      "seam": "Wrap NotebookRepositoryImpl with CachingNotebookRepository decorator. INotebookRepository interface unchanged."
+    },
+    {
+      "future_feature": "nbformat 5 / new cell types",
+      "seam": "Cell.Unknown already handles unrecognized cell_type. Mapper extended with new when branch. DTOs already ignore unknown fields."
+    },
+    {
+      "future_feature": "Hilt DI",
+      "seam": "Replace AppContainer with @Module classes. All constructor signatures are already injection-ready."
+    },
+    {
+      "future_feature": "Jetpack Compose migration",
+      "seam": "ViewModel + StateFlow + domain layer are Compose-compatible today. Only ViewHolder/Adapter code is replaced."
+    },
+    {
+      "future_feature": "Math rendering (LaTeX)",
+      "seam": "Markwon has a math extension module. Add dependency + register plugin in Markwon builder in MarkdownCellViewHolder."
+    }
+  ],
+
+  "implemented_files": {
+    "M1": [
+      "app/src/main/kotlin/com/nbviewer/App.kt",
+      "app/src/main/kotlin/com/nbviewer/MainActivity.kt",
+      "app/src/main/kotlin/com/nbviewer/di/AppContainer.kt",
+      "app/src/main/kotlin/com/nbviewer/domain/model/NotebookSource.kt",
+      "app/src/main/kotlin/com/nbviewer/presentation/home/HomeFragment.kt",
+      "app/src/main/kotlin/com/nbviewer/presentation/viewer/NotebookViewerFragment.kt",
+      "app/src/main/kotlin/com/nbviewer/presentation/viewer/NotebookViewerViewModel.kt",
+      "app/src/main/kotlin/com/nbviewer/presentation/viewer/NotebookUiState.kt",
+      "app/src/main/res/layout/fragment_home.xml",
+      "app/src/main/res/layout/fragment_viewer.xml",
+      "app/src/main/res/navigation/nav_graph.xml",
+      "app/src/main/AndroidManifest.xml",
+      "app/build.gradle.kts",
+      "build.gradle.kts (root)"
+    ]
+  },
+
+  "pending_files": {
+    "M2": [
+      "app/src/main/kotlin/com/nbviewer/data/model/NotebookDto.kt",
+      "app/src/main/kotlin/com/nbviewer/data/parser/NotebookParser.kt",
+      "app/src/main/kotlin/com/nbviewer/data/source/FileDataSource.kt",
+      "app/src/test/kotlin/com/nbviewer/data/parser/NotebookParserTest.kt",
+      "app/src/test/resources/fixtures/simple.ipynb",
+      "app/src/test/resources/fixtures/complex.ipynb",
+      "app/src/test/resources/fixtures/malformed.ipynb"
+    ],
+    "M3": [
+      "app/src/main/kotlin/com/nbviewer/domain/model/Notebook.kt",
+      "app/src/main/kotlin/com/nbviewer/domain/model/Cell.kt",
+      "app/src/main/kotlin/com/nbviewer/domain/model/CellOutput.kt",
+      "app/src/main/kotlin/com/nbviewer/domain/model/NotebookMetadata.kt",
+      "app/src/main/kotlin/com/nbviewer/domain/repository/INotebookRepository.kt",
+      "app/src/main/kotlin/com/nbviewer/domain/usecase/LoadNotebookUseCase.kt",
+      "app/src/main/kotlin/com/nbviewer/data/mapper/NotebookDtoMapper.kt",
+      "app/src/main/kotlin/com/nbviewer/data/repository/NotebookRepositoryImpl.kt",
+      "app/src/test/kotlin/com/nbviewer/data/mapper/NotebookDtoMapperTest.kt",
+      "app/src/test/kotlin/com/nbviewer/domain/usecase/LoadNotebookUseCaseTest.kt"
+    ],
+    "M4": [
+      "app/src/main/kotlin/com/nbviewer/presentation/viewer/CellUiModel.kt",
+      "app/src/main/kotlin/com/nbviewer/presentation/viewer/OutputUiModel.kt",
+      "app/src/main/kotlin/com/nbviewer/presentation/viewer/NotebookAdapter.kt",
+      "app/src/main/kotlin/com/nbviewer/presentation/render/MarkdownCellViewHolder.kt",
+      "app/src/main/kotlin/com/nbviewer/presentation/render/CodeCellViewHolder.kt",
+      "app/src/main/kotlin/com/nbviewer/presentation/render/RawCellViewHolder.kt",
+      "app/src/main/res/layout/item_cell_markdown.xml",
+      "app/src/main/res/layout/item_cell_code.xml",
+      "app/src/main/res/layout/item_cell_raw.xml"
+    ],
+    "M5": [
+      "app/src/main/kotlin/com/nbviewer/presentation/render/SyntaxHighlighter.kt",
+      "app/src/main/proguard-rules.pro"
+    ]
+  },
+
+  "testing_strategy": {
+    "unit": {
+      "scope": "Domain + Data layers. Pure JVM, no Android dependencies.",
+      "framework": "JUnit 4 + kotlin.test assertions",
+      "targets": ["NotebookParser", "NotebookDtoMapper", "LoadNotebookUseCase"]
+    },
+    "integration": {
+      "scope": "Repository + Parser with real .ipynb fixture files as test resources",
+      "framework": "JUnit 4 + real file streams"
+    },
+    "ui": {
+      "scope": "Fragment navigation, RecyclerView item count, error state display",
+      "framework": "Espresso (added at M4)",
+      "deferred_reason": "No UI to test until M4"
+    }
+  },
+
+  "constraints_log": [
+    "Must work fully offline — no network calls anywhere in codebase",
+    "Must NOT bundle Python, Jupyter, Node.js, or any runtime",
+    "APK size target: under 5MB total",
+    "RAM target: under 50MB peak for typical notebook (< 500 cells)",
+    "No code execution — SyntaxHighlighter reads source as static text only",
+    "No WebView usage anywhere",
+    "Domain layer: zero Android SDK imports enforced by package convention"
+  ]
+}

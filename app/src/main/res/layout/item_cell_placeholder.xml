@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- item_cell_placeholder.xml -->
+<!-- Used only as tools:listitem reference in fragment_viewer.xml for layout preview. -->
+<!-- Real cell layouts are created in M4. -->
+<TextView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="16dp"
+    android:text="Cell placeholder (M4)"
+    android:textAppearance="?attr/textAppearanceBody2" />
