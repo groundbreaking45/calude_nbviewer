@@ -34,7 +34,7 @@ import kotlinx.coroutines.launch
  *   It converts the intent URI string directly to a NotebookSource.
  */
 class NotebookViewerViewModel(
-    private val loadNotebook: LoadNotebookUseCase
+    private val loadNotebookUseCase: LoadNotebookUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<NotebookUiState>(NotebookUiState.Idle)
