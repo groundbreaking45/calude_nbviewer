@@ -56,7 +56,8 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 
     // --- Markdown rendering (M5: Markwon) ---
-    implementation("io.noties.markwon:markwon-core:4.6.2")
+    implementation("org.commonmark:commonmark:0.21.0")
+    implementation("org.commonmark:commonmark-ext-gfm-tables:0.21.0")
 
     // --- Coroutines ---
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")

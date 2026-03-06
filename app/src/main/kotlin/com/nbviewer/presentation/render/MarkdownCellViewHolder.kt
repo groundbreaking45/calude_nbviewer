@@ -1,5 +1,6 @@
 package com.nbviewer.presentation.render
 
+import android.text.Html
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -7,27 +8,25 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.nbviewer.R
 import com.nbviewer.presentation.viewer.CellUiModel
-import io.noties.markwon.Markwon
+import org.commonmark.parser.Parser
+import org.commonmark.renderer.html.HtmlRenderer
 
-/**
- * ViewHolder for Markdown cells.
- *
- * Uses Markwon to render raw Markdown into a native Android Spannable
- * applied directly to a TextView. No WebView involved.
- *
- * Markwon is instantiated once per ViewHolder creation and reused across
- * bind() calls — it is stateless and safe to reuse.
- *
- * FUTURE: Add Markwon extensions (tables, strikethrough, task lists, math)
- * by registering plugins in the Markwon.builder() call. Zero ViewHolder changes.
- */
 class MarkdownCellViewHolder(view: View) : RecyclerView.ViewHolder(view) {
 
     private val textView: TextView = view.findViewById(R.id.cell_markdown_text)
-    private val markwon: Markwon = Markwon.create(view.context)
+
+    private val parser = Parser.builder().build()
+    private val renderer = HtmlRenderer.builder().build()
 
     fun bind(cell: CellUiModel.MarkdownCell) {
-        markwon.setMarkdown(textView, cell.rawMarkdown)
+        val document = parser.parse(cell.rawMarkdown)
+        val html = renderer.render(document)
+        @Suppress("DEPRECATION")
+        textView.text = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+            Html.fromHtml(html, Html.FROM_HTML_MODE_COMPACT)
+        } else {
+            Html.fromHtml(html)
+        }
     }
 
     companion object {
