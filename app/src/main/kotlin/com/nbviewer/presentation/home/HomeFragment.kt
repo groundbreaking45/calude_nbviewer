@@ -32,7 +32,7 @@ import com.nbviewer.databinding.FragmentHomeBinding
  *     - Works with cloud storage providers (Drive, Dropbox) automatically.
  *     - Returns a content:// URI that the ContentResolver can open.
  *
- *   MIME TYPE: We pass "*/*" to show all files. .ipynb has no registered MIME type
+ *   MIME TYPE: We pass "(astric)/(astric)" to show all files. .ipynb has no registered MIME type
  *   so restricting to a specific type would hide valid files on most devices.
  *   The parser validates content regardless of how the file was selected.
  *
@@ -53,7 +53,7 @@ class HomeFragment : Fragment() {
     /**
      * System file picker launcher.
      *
-     * Mime type "*/*" shows all files. The user can navigate to any .ipynb file
+     * Mime type "(astric)/(astric)" shows all files. The user can navigate to any .ipynb file
      * regardless of how the OS has categorized its MIME type.
      *
      * The lambda runs on the main thread after the picker returns.
@@ -103,7 +103,7 @@ class HomeFragment : Fragment() {
 
     private fun launchFilePicker() {
         try {
-            // Pass "*/*" — see MIME TYPE note above
+            // Pass "(astric)/(astric)" — see MIME TYPE note above
             openFileLauncher.launch(arrayOf("*/*"))
         } catch (e: Exception) {
             // Very rare: no file manager app installed on device
