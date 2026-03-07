@@ -4,4 +4,7 @@
     <color name="nb_text_output">#CCCCCC</color>
     <color name="nb_error_text">#FF6B6B</color>
     <color name="nb_error_bg">#2D1515</color>
+    <color name="nb_inline_code_bg">#3A3A3A</color>
+    <color name="nb_quote_bar">#4A90D9</color>
+    <color name="nb_heading_color">#E8E8E8</color>
 </resources>
