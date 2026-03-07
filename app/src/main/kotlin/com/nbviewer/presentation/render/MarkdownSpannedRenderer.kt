@@ -4,7 +4,6 @@ import android.content.Context
 import android.graphics.Typeface
 import android.text.SpannableStringBuilder
 import android.text.Spanned
-import android.text.style.BackgroundColorSpan
 import android.text.style.ForegroundColorSpan
 import android.text.style.LeadingMarginSpan
 import android.text.style.QuoteSpan
@@ -32,15 +31,14 @@ import org.commonmark.node.ThematicBreak
 
 class MarkdownSpannedRenderer(private val context: Context) {
 
-    private val inlineCodeBg   by lazy { context.getColor(R.color.nb_inline_code_bg) }
-    private val quoteBarColor  by lazy { context.getColor(R.color.nb_quote_bar) }
-    private val headingColor   by lazy { context.getColor(R.color.nb_heading_color) }
+    private val inlineCodeColor by lazy { context.getColor(R.color.nb_inline_code_fg) }
+    private val quoteBarColor   by lazy { context.getColor(R.color.nb_quote_bar) }
+    private val headingColor    by lazy { context.getColor(R.color.nb_heading_color) }
 
     fun render(document: Document): Spanned {
         val sb = SpannableStringBuilder()
         renderChildren(document, sb, listDepth = 0, orderedStart = null)
-        // Trim leading/trailing blank lines
-        return sb.trimEnd() as? Spanned ?: sb
+        return sb.trimEnd()
     }
 
     // ── Node dispatch ──────────────────────────────────────────────────────────
@@ -52,23 +50,23 @@ class MarkdownSpannedRenderer(private val context: Context) {
         orderedStart: Int?
     ) {
         when (node) {
-            is Document         -> renderChildren(node, sb, listDepth, orderedStart)
-            is Heading          -> renderHeading(node, sb)
-            is Paragraph        -> renderParagraph(node, sb, listDepth)
-            is BulletList       -> renderBulletList(node, sb, listDepth)
-            is OrderedList      -> renderOrderedList(node, sb, listDepth)
-            is ListItem         -> renderListItem(node, sb, listDepth, orderedStart)
-            is BlockQuote       -> renderBlockQuote(node, sb)
-            is FencedCodeBlock  -> renderFencedCode(node, sb)
-            is IndentedCodeBlock-> renderIndentedCode(node, sb)
-            is ThematicBreak    -> sb.append("\n───────────────\n\n")
-            is StrongEmphasis   -> renderInlineStyled(node, sb, listDepth, StyleSpan(Typeface.BOLD))
-            is Emphasis         -> renderInlineStyled(node, sb, listDepth, StyleSpan(Typeface.ITALIC))
-            is Code             -> renderInlineCode(node, sb)
-            is Text             -> sb.append(node.literal)
-            is SoftLineBreak    -> sb.append("\n")
-            is HardLineBreak    -> sb.append("\n")
-            else                -> renderChildren(node, sb, listDepth, orderedStart)
+            is Document          -> renderChildren(node, sb, listDepth, orderedStart)
+            is Heading           -> renderHeading(node, sb)
+            is Paragraph         -> renderParagraph(node, sb, listDepth)
+            is BulletList        -> renderBulletList(node, sb, listDepth)
+            is OrderedList       -> renderOrderedList(node, sb, listDepth)
+            is ListItem          -> renderListItem(node, sb, listDepth, orderedStart)
+            is BlockQuote        -> renderBlockQuote(node, sb)
+            is FencedCodeBlock   -> renderFencedCode(node, sb)
+            is IndentedCodeBlock -> renderIndentedCode(node, sb)
+            is ThematicBreak     -> sb.append("\n───────────────\n\n")
+            is StrongEmphasis    -> renderInlineStyled(node, sb, listDepth, StyleSpan(Typeface.BOLD))
+            is Emphasis          -> renderInlineStyled(node, sb, listDepth, StyleSpan(Typeface.ITALIC))
+            is Code              -> renderInlineCode(node, sb)
+            is Text              -> sb.append(node.literal)
+            is SoftLineBreak     -> sb.append("\n")
+            is HardLineBreak     -> sb.append("\n")
+            else                 -> renderChildren(node, sb, listDepth, orderedStart)
         }
     }
 
@@ -88,9 +86,7 @@ class MarkdownSpannedRenderer(private val context: Context) {
     // ── Block elements ─────────────────────────────────────────────────────────
 
     private fun renderHeading(node: Heading, sb: SpannableStringBuilder) {
-        // Extra breathing room before heading (except at document start)
         if (sb.isNotEmpty()) sb.append("\n\n")
-
         val start = sb.length
         renderChildren(node, sb, listDepth = 0, orderedStart = null)
         val end = sb.length
@@ -102,11 +98,9 @@ class MarkdownSpannedRenderer(private val context: Context) {
             else -> 1.0f to Typeface.BOLD
         }
 
-        sb.setSpan(RelativeSizeSpan(sizeMult),   start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-        sb.setSpan(StyleSpan(style),             start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        sb.setSpan(RelativeSizeSpan(sizeMult),        start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        sb.setSpan(StyleSpan(style),                  start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         sb.setSpan(ForegroundColorSpan(headingColor), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-
-        // One line gap after heading — less than the double gap before next heading
         sb.append("\n\n")
     }
 
@@ -115,18 +109,7 @@ class MarkdownSpannedRenderer(private val context: Context) {
         sb: SpannableStringBuilder,
         listDepth: Int
     ) {
-        val start = sb.length
         renderChildren(node, sb, listDepth, orderedStart = null)
-
-        // Shallow left margin for body text — preserves hierarchy feel on narrow screens
-        if (listDepth == 0) {
-            sb.setSpan(
-                LeadingMarginSpan.Standard(4.dp, 4.dp),
-                start, sb.length,
-                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-            )
-        }
-
         sb.append("\n\n")
     }
 
@@ -170,10 +153,7 @@ class MarkdownSpannedRenderer(private val context: Context) {
         sb.append(prefix)
         renderChildren(node, sb, listDepth, orderedStart = null)
 
-        // Ensure list item ends with single newline
         if (sb.isNotEmpty() && sb.last() != '\n') sb.append("\n")
-
-        // Small gap between items for scannability
         sb.append("\n")
 
         sb.setSpan(
@@ -182,7 +162,6 @@ class MarkdownSpannedRenderer(private val context: Context) {
             Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
         )
 
-        // Slightly smaller text for nested lists
         if (listDepth > 1) {
             sb.setSpan(
                 RelativeSizeSpan(0.95f),
@@ -205,9 +184,9 @@ class MarkdownSpannedRenderer(private val context: Context) {
         val start = sb.length
         sb.append(node.literal.trimEnd())
         val end = sb.length
-        sb.setSpan(TypefaceSpan("monospace"),          start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-        sb.setSpan(BackgroundColorSpan(inlineCodeBg),  start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-        sb.setSpan(LeadingMarginSpan.Standard(8.dp),   start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        sb.setSpan(TypefaceSpan("monospace"),           start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        sb.setSpan(ForegroundColorSpan(inlineCodeColor), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        sb.setSpan(LeadingMarginSpan.Standard(8.dp),    start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         sb.append("\n\n")
     }
 
@@ -216,9 +195,9 @@ class MarkdownSpannedRenderer(private val context: Context) {
         val start = sb.length
         sb.append(node.literal.trimEnd())
         val end = sb.length
-        sb.setSpan(TypefaceSpan("monospace"),          start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-        sb.setSpan(BackgroundColorSpan(inlineCodeBg),  start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-        sb.setSpan(LeadingMarginSpan.Standard(8.dp),   start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        sb.setSpan(TypefaceSpan("monospace"),            start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        sb.setSpan(ForegroundColorSpan(inlineCodeColor), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        sb.setSpan(LeadingMarginSpan.Standard(8.dp),     start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         sb.append("\n\n")
     }
 
@@ -240,8 +219,8 @@ class MarkdownSpannedRenderer(private val context: Context) {
     private fun renderInlineCode(node: Code, sb: SpannableStringBuilder) {
         val start = sb.length
         sb.append(node.literal)
-        sb.setSpan(TypefaceSpan("monospace"),         start, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-        sb.setSpan(BackgroundColorSpan(inlineCodeBg), start, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        sb.setSpan(TypefaceSpan("monospace"),            start, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        sb.setSpan(ForegroundColorSpan(inlineCodeColor), start, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────────
