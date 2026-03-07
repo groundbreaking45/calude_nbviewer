@@ -13,13 +13,12 @@ import com.nbviewer.presentation.viewer.OutputUiModel
 
 class CodeCellViewHolder(view: View) : RecyclerView.ViewHolder(view) {
 
-    private val executionCountView: TextView = view.findViewById(R.id.cell_code_execution_count)
-    private val sourceView: TextView         = view.findViewById(R.id.cell_code_source)
+    private val executionCountView: TextView  = view.findViewById(R.id.cell_code_execution_count)
+    private val sourceView: TextView          = view.findViewById(R.id.cell_code_source)
     private val outputContainer: LinearLayout = view.findViewById(R.id.cell_code_output_container)
 
     fun bind(cell: CellUiModel.CodeCell) {
         executionCountView.text = cell.executionCount
-
         sourceView.text = SyntaxHighlighter.highlight(cell.source, cell.language)
 
         outputContainer.removeAllViews()
@@ -27,9 +26,36 @@ class CodeCellViewHolder(view: View) : RecyclerView.ViewHolder(view) {
             outputContainer.visibility = View.GONE
         } else {
             outputContainer.visibility = View.VISIBLE
-            cell.outputs.forEach { output ->
-                outputContainer.addView(buildOutputView(output))
+
+            // Left border strip connecting output to its parent cell
+            val borderStrip = View(itemView.context).apply {
+                layoutParams = LinearLayout.LayoutParams(3.dp, LinearLayout.LayoutParams.MATCH_PARENT)
+                setBackgroundColor(itemView.context.getColor(R.color.nb_output_border))
             }
+
+            val borderAndContent = LinearLayout(itemView.context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+            }
+
+            val contentColumn = LinearLayout(itemView.context).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(
+                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f
+                )
+                setPadding(8.dp, 0, 0, 0)
+            }
+
+            cell.outputs.forEach { output ->
+                contentColumn.addView(buildOutputView(output))
+            }
+
+            borderAndContent.addView(borderStrip)
+            borderAndContent.addView(contentColumn)
+            outputContainer.addView(borderAndContent)
         }
     }
 

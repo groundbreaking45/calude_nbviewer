@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="nb_surface_code">#2D2D2D</color>
+    <color name="nb_text_body">#E0E0E0</color>
     <color name="nb_text_output">#CCCCCC</color>
     <color name="nb_error_text">#FF6B6B</color>
     <color name="nb_error_bg">#2D1515</color>
     <color name="nb_inline_code_fg">#569CD6</color>
     <color name="nb_quote_bar">#4A90D9</color>
     <color name="nb_heading_color">#E8E8E8</color>
+    <color name="nb_output_border">#4A90D9</color>
 </resources>

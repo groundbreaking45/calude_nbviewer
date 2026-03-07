@@ -31,9 +31,10 @@ import org.commonmark.node.ThematicBreak
 
 class MarkdownSpannedRenderer(private val context: Context) {
 
+    private val bodyTextColor  by lazy { context.getColor(R.color.nb_text_body) }
     private val inlineCodeColor by lazy { context.getColor(R.color.nb_inline_code_fg) }
-    private val quoteBarColor   by lazy { context.getColor(R.color.nb_quote_bar) }
-    private val headingColor    by lazy { context.getColor(R.color.nb_heading_color) }
+    private val quoteBarColor  by lazy { context.getColor(R.color.nb_quote_bar) }
+    private val headingColor   by lazy { context.getColor(R.color.nb_heading_color) }
 
     fun render(document: Document): Spanned {
         val sb = SpannableStringBuilder()
@@ -59,11 +60,27 @@ class MarkdownSpannedRenderer(private val context: Context) {
             is BlockQuote        -> renderBlockQuote(node, sb)
             is FencedCodeBlock   -> renderFencedCode(node, sb)
             is IndentedCodeBlock -> renderIndentedCode(node, sb)
-            is ThematicBreak     -> sb.append("\n───────────────\n\n")
+            is ThematicBreak     -> {
+                val start = sb.length
+                sb.append("\n───────────────\n\n")
+                sb.setSpan(
+                    ForegroundColorSpan(bodyTextColor),
+                    start, sb.length,
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+            }
             is StrongEmphasis    -> renderInlineStyled(node, sb, listDepth, StyleSpan(Typeface.BOLD))
             is Emphasis          -> renderInlineStyled(node, sb, listDepth, StyleSpan(Typeface.ITALIC))
             is Code              -> renderInlineCode(node, sb)
-            is Text              -> sb.append(node.literal)
+            is Text              -> {
+                val start = sb.length
+                sb.append(node.literal)
+                sb.setSpan(
+                    ForegroundColorSpan(bodyTextColor),
+                    start, sb.length,
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+            }
             is SoftLineBreak     -> sb.append("\n")
             is HardLineBreak     -> sb.append("\n")
             else                 -> renderChildren(node, sb, listDepth, orderedStart)
@@ -98,9 +115,9 @@ class MarkdownSpannedRenderer(private val context: Context) {
             else -> 1.0f to Typeface.BOLD
         }
 
-        sb.setSpan(RelativeSizeSpan(sizeMult),        start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-        sb.setSpan(StyleSpan(style),                  start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-        sb.setSpan(ForegroundColorSpan(headingColor), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        sb.setSpan(RelativeSizeSpan(sizeMult),         start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        sb.setSpan(StyleSpan(style),                   start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        sb.setSpan(ForegroundColorSpan(headingColor),  start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         sb.append("\n\n")
     }
 
@@ -109,6 +126,7 @@ class MarkdownSpannedRenderer(private val context: Context) {
         sb: SpannableStringBuilder,
         listDepth: Int
     ) {
+        // Body text color is applied at the Text node level — no span needed here
         renderChildren(node, sb, listDepth, orderedStart = null)
         sb.append("\n\n")
     }
@@ -150,7 +168,16 @@ class MarkdownSpannedRenderer(private val context: Context) {
         val prefix = if (orderedStart != null) "$orderedStart. " else "• "
 
         val start = sb.length
+
+        // Prefix in body color
+        val prefixStart = sb.length
         sb.append(prefix)
+        sb.setSpan(
+            ForegroundColorSpan(bodyTextColor),
+            prefixStart, sb.length,
+            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
+
         renderChildren(node, sb, listDepth, orderedStart = null)
 
         if (sb.isNotEmpty() && sb.last() != '\n') sb.append("\n")
@@ -184,9 +211,9 @@ class MarkdownSpannedRenderer(private val context: Context) {
         val start = sb.length
         sb.append(node.literal.trimEnd())
         val end = sb.length
-        sb.setSpan(TypefaceSpan("monospace"),           start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        sb.setSpan(TypefaceSpan("monospace"),            start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         sb.setSpan(ForegroundColorSpan(inlineCodeColor), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-        sb.setSpan(LeadingMarginSpan.Standard(8.dp),    start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        sb.setSpan(LeadingMarginSpan.Standard(8.dp),     start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         sb.append("\n\n")
     }
 
