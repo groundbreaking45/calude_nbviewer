@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="nb_surface_code">#F0F0F0</color>
+    <color name="nb_text_output">#1A1A1A</color>
+    <color name="nb_error_text">#CC0000</color>
+    <color name="nb_error_bg">#FFF0F0</color>
+</resources>
